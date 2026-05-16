@@ -2,9 +2,32 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 
-/**
- * REGISTER
- */
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const createToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.SECRET_KEY,
+    { expiresIn: "7d" }
+  );
+};
+
+const getTokenFromRequest = (req) => {
+  if (req.cookies?.token) return req.cookies.token;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
+  }
+
+  return null;
+};
+
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -19,32 +42,26 @@ export const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await User.create({
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role: "user",
     });
 
-    const token = jwt.sign(
-      { id: newUser._id, email },
-      process.env.SECRET_KEY,
-      { expiresIn: "7d" }
-    );
+    const token = createToken(user);
+    res.cookie("token", token, cookieOptions);
 
-  //cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    return res.status(200).json({
+    return res.status(201).json({
       success: true,
       message: "You have successfully registered",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("Registration failed:", error);
@@ -52,47 +69,37 @@ export const register = async (req, res) => {
   }
 };
 
-/**
- * LOGIN
- */
 export const login = async (req, res) => {
   try {
-    
-    
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: "Please fill all required fields" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
-      return res.status(400).json({ message: "Incorrect password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.SECRET_KEY,
-      { expiresIn: "7d" }
-    );
-
-    // cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    const token = createToken(user);
+    res.cookie("token", token, cookieOptions);
 
     return res.status(200).json({
       success: true,
       message: "You have successfully logged in!",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("Login failed:", error);
@@ -100,12 +107,9 @@ export const login = async (req, res) => {
   }
 };
 
-/**
- * GET CURRENT USER
- */
 export const me = async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const token = getTokenFromRequest(req);
 
     if (!token) {
       return res.status(401).json({ message: "Not logged in" });
@@ -125,18 +129,9 @@ export const me = async (req, res) => {
   }
 };
 
-/**
- * LOGOUT
- */
 export const logout = (req, res) => {
   try {
-    // MUST MATCH cookie options EXACTLY
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      
-    });
+    res.clearCookie("token", cookieOptions);
 
     return res.status(200).json({
       success: true,
