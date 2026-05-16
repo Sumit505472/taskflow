@@ -2,8 +2,29 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
 
+const getTokenFromRequest = (req) => {
+  if (req.cookies?.token) return req.cookies.token;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const tokenCookie = cookieHeader
+      .split(';')
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith('token='));
+
+    if (tokenCookie) return tokenCookie.split('=')[1];
+  }
+
+  return null;
+};
+
 const authMiddleware = async (req, res, next) => {
-  const token = req.cookies.token;
+  const token = getTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ success: false, error: 'Unauthorized: No token' });

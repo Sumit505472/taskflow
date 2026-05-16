@@ -10,6 +10,10 @@ const cookieOptions = {
 };
 
 const createToken = (user) => {
+  if (!process.env.SECRET_KEY) {
+    throw new Error("SECRET_KEY is missing in environment variables");
+  }
+
   return jwt.sign(
     { id: user._id, role: user.role },
     process.env.SECRET_KEY,
@@ -66,6 +70,68 @@ export const register = async (req, res) => {
   } catch (error) {
     console.error("Registration failed:", error);
     return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+export const seedAdmin = async (req, res) => {
+  try {
+    const { name, email, password, seedKey } = req.body;
+
+    if (!process.env.SECRET_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "SECRET_KEY is missing in .env",
+      });
+    }
+
+    if (process.env.ADMIN_SEED_KEY && seedKey !== process.env.ADMIN_SEED_KEY) {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid admin seed key",
+      });
+    }
+
+    const adminExists = await User.exists({ role: "admin" });
+    if (adminExists) {
+      return res.status(409).json({
+        success: false,
+        message: "Admin user already exists",
+      });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists with this email",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "admin",
+    });
+
+    const token = createToken(admin);
+    res.cookie("token", token, cookieOptions);
+
+    return res.status(201).json({
+      success: true,
+      message: "Admin user created successfully",
+      token,
+      user: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+      },
+    });
+  } catch (error) {
+    console.error("Admin seed failed:", error);
+    return res.status(500).json({ success: false, message: "Something went wrong" });
   }
 };
 
