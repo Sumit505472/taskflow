@@ -4,7 +4,9 @@ const documentSchema = new mongoose.Schema(
   {
     originalName: { type: String, required: true, trim: true },
     fileName: { type: String, required: true, trim: true },
-    path: { type: String, required: true },
+    path: { type: String },
+    s3Key: { type: String },
+    s3Url: { type: String },
     mimetype: {
       type: String,
       enum: ['application/pdf'],

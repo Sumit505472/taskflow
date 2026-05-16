@@ -1,7 +1,12 @@
-import fs from "fs";
-import path from "path";
+import AWS from "aws-sdk";
 import Task from "../models/task.js";
 import User from "../models/user.js";
+
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+});
 
 const buildTaskFilter = (req) => {
   const filter = {};
@@ -42,17 +47,25 @@ const canViewTask = (req, task) => {
 const mapFilesToDocuments = (files = []) => {
   return files.map((file) => ({
     originalName: file.originalname,
-    fileName: file.filename,
-    path: file.path,
+    fileName: file.key,
+    s3Key: file.key,
+    s3Url: file.location,
     mimetype: file.mimetype,
     size: file.size,
   }));
 };
 
-const cleanupFiles = (files = []) => {
-  files.forEach((file) => {
-    fs.unlink(file.path, () => {});
-  });
+const cleanupFiles = async (files = []) => {
+  for (const file of files) {
+    try {
+      await s3.deleteObject({
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: file.s3Key || file.key,
+      }).promise();
+    } catch (error) {
+      console.error(`Failed to delete S3 file: ${file.s3Key}`, error);
+    }
+  }
 };
 
 const getAllTasks = async (req, res) => {
@@ -238,9 +251,17 @@ const deleteTask = async (req, res) => {
       });
     }
 
-    task.documents.forEach((document) => {
-      fs.unlink(document.path, () => {});
-    });
+    for (const document of task.documents) {
+      try {
+        await s3.deleteObject({
+          Bucket: process.env.AWS_S3_BUCKET,
+          Key: document.s3Key,
+        }).promise();
+      } catch (error) {
+        console.error(`Failed to delete S3 file: ${document.s3Key}`, error);
+      }
+    }
+
     await task.deleteOne();
 
     res.status(200).json({ success: true, message: "Task deleted successfully" });
@@ -269,7 +290,17 @@ const downloadTaskDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    return res.download(path.resolve(document.path), document.originalName);
+    const signedUrl = s3.getSignedUrl("getObject", {
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: document.s3Key,
+      Expires: 3600,
+    });
+
+    res.status(200).json({
+      success: true,
+      downloadUrl: signedUrl,
+      fileName: document.originalName,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
@@ -295,9 +326,17 @@ const viewTaskDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${document.originalName}"`);
-    return res.sendFile(path.resolve(document.path));
+    const signedUrl = s3.getSignedUrl("getObject", {
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: document.s3Key,
+      Expires: 3600,
+    });
+
+    res.status(200).json({
+      success: true,
+      viewUrl: signedUrl,
+      fileName: document.originalName,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
@@ -323,7 +362,15 @@ const deleteTaskDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Document not found" });
     }
 
-    fs.unlink(document.path, () => {});
+    try {
+      await s3.deleteObject({
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: document.s3Key,
+      }).promise();
+    } catch (error) {
+      console.error("S3 deletion error:", error);
+    }
+
     task.documents.pull(document._id);
     await task.save();
 
