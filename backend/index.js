@@ -7,12 +7,21 @@ import DBConnection from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import taskRoutes from './routes/task.routes.js';
+import cors from 'cors';
 
 const app=express();
 
 DBConnection();
 app.use(express.json());
 app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://65.2.79.177:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use("/api/auth",authRoutes);
 app.use("/api/users",userRoutes);
