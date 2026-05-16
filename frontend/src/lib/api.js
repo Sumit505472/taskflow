@@ -46,6 +46,19 @@ export const clearAuth = () => {
 };
 
 export const readStoredUser = () => {
-  const user = localStorage.getItem("taskflow_user");
-  return user ? JSON.parse(user) : null;
+  try {
+    const user = localStorage.getItem("taskflow_user");
+
+    if (!user || user === "undefined") {
+      return null;
+    }
+
+    return JSON.parse(user);
+  } catch (error) {
+    console.error("Failed to parse stored user:", error);
+
+    localStorage.removeItem("taskflow_user");
+
+    return null;
+  }
 };
