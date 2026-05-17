@@ -261,19 +261,39 @@ const Dashboard = () => {
                         <div key={document._id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
                           <span className="font-medium text-slate-700">{document.originalName}</span>
                           <span className="flex gap-3">
-                            <a className="font-semibold text-blue-700"
-                              href={`http://65.2.79.177:5000/api/tasks/${task._id}/documents/${document._id}/view`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              className="font-semibold text-blue-700"
+                              onClick={async () => {
+                                try {
+                                  const data = await apiRequest(
+                                    `/api/tasks/${task._id}/documents/${document._id}/view`
+                                  );
+
+                                  window.open(data.viewUrl, "_blank");
+                                } catch (err) {
+                                  setError(err.message);
+                                }
+                              }}
                             >
                               View
-                            </a>
-                            <a
+                            </button>
+
+                            <button
                               className="font-semibold text-blue-700"
-                              href={`http://65.2.79.177:5000/api/tasks/${task._id}/documents/${document._id}`}
+                              onClick={async () => {
+                                try {
+                                  const data = await apiRequest(
+                                    `/api/tasks/${task._id}/documents/${document._id}`
+                                  );
+
+                                  window.open(data.downloadUrl, "_blank");
+                                } catch (err) {
+                                  setError(err.message);
+                                }
+                              }}
                             >
                               Download
-                            </a>
+                            </button>
                             <button className="font-semibold text-red-600" onClick={() => deleteDocument(task._id, document._id)}>Delete</button>
                           </span>
                         </div>
