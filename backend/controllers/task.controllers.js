@@ -40,7 +40,15 @@ const canViewTask = (req, task) => {
   return (
     req.user.role === "admin" ||
     task.createdBy?.toString() === req.user._id.toString() ||
-    task.assignedTo?.toString() === req.user._id.toString()
+    (
+      Array.isArray(task.assignedTo)
+        ? task.assignedTo.some(
+          (userId) =>
+            userId.toString() === req.user._id.toString()
+        )
+        : task.assignedTo?.toString() ===
+        req.user._id.toString()
+    )
   );
 };
 
@@ -113,11 +121,18 @@ const createTask = async (req, res) => {
       return res.status(400).json({ success: false, message: "Title is required" });
     }
 
-    if (assignedTo) {
-      const assignedUser = await User.findById(assignedTo);
-      if (!assignedUser) {
+    if (assignedTo?.length) {
+      const users = await User.find({
+        _id: { $in: assignedTo },
+      });
+
+      if (users.length !== assignedTo.length) {
         cleanupFiles(req.files);
-        return res.status(404).json({ success: false, message: "Assigned user not found" });
+
+        return res.status(404).json({
+          success: false,
+          message: "One or more assigned users not found",
+        });
       }
     }
 
@@ -127,7 +142,7 @@ const createTask = async (req, res) => {
       status,
       priority,
       dueDate: dueDate || null,
-      assignedTo: assignedTo || null,
+      assignedTo: assignedTo || [],
       createdBy: req.user._id,
       documents: mapFilesToDocuments(req.files),
     });
@@ -160,8 +175,15 @@ const getTaskById = async (req, res) => {
     const canView =
       req.user.role === "admin" ||
       task.createdBy._id.toString() === req.user._id.toString() ||
-      task.assignedTo?._id?.toString() === req.user._id.toString();
-
+      (
+        Array.isArray(task.assignedTo)
+          ? task.assignedTo.some(
+            (user) =>
+              user._id.toString() === req.user._id.toString()
+          )
+          : task.assignedTo?._id?.toString() ===
+          req.user._id.toString()
+      );
     if (!canView) {
       return res.status(403).json({
         success: false,
@@ -194,12 +216,20 @@ const updateTask = async (req, res) => {
 
     const { title, description, status, priority, dueDate, assignedTo } = req.body;
 
-    if (assignedTo) {
-      const assignedUser = await User.findById(assignedTo);
-      if (!assignedUser) {
+    if (assignedTo?.length) {
+      const users = await User.find({
+        _id: { $in: assignedTo },
+      });
+
+      if (users.length !== assignedTo.length) {
         cleanupFiles(req.files);
-        return res.status(404).json({ success: false, message: "Assigned user not found" });
+
+        return res.status(404).json({
+          success: false,
+          message: "One or more assigned users not found",
+        });
       }
+
       task.assignedTo = assignedTo;
     }
 

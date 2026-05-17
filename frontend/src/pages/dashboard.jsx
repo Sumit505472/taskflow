@@ -8,7 +8,7 @@ const emptyTask = {
   status: "todo",
   priority: "medium",
   dueDate: "",
-  assignedTo: "",
+  assignedTo: [],
   documents: [],
 };
 
@@ -87,7 +87,11 @@ const Dashboard = () => {
       status: task.status || "todo",
       priority: task.priority || "medium",
       dueDate: task.dueDate ? task.dueDate.slice(0, 10) : "",
-      assignedTo: task.assignedTo?._id || task.assignedTo?.id || "",
+      assignedTo: Array.isArray(task.assignedTo)
+        ? task.assignedTo.map((user) => user._id)
+        : task.assignedTo
+          ? [task.assignedTo._id || task.assignedTo.id]
+          : [],
       documents: [],
     });
     setShowForm(true);
@@ -105,7 +109,9 @@ const Dashboard = () => {
     data.append("status", form.status);
     data.append("priority", form.priority);
     data.append("dueDate", form.dueDate);
-    if (form.assignedTo) data.append("assignedTo", form.assignedTo);
+    form.assignedTo.forEach((id) => {
+      data.append("assignedTo", id);
+    });
     Array.from(form.documents).forEach((file) => data.append("documents", file));
 
     try {
@@ -251,7 +257,9 @@ const Dashboard = () => {
                 </div>
                 <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                   <p>Created by: <span className="font-medium text-slate-800">{task.createdBy?.name || "Unknown"}</span></p>
-                  <p>Assigned to: <span className="font-medium text-slate-800">{task.assignedTo?.name || "Unassigned"}</span></p>
+                  <p>Assigned to: <span className="font-medium text-slate-800">{Array.isArray(task.assignedTo)
+                    ? task.assignedTo.map((user) => user.name).join(", ")
+                    : task.assignedTo?.name || "Unassigned"}</span></p>
                 </div>
                 {task.documents?.length > 0 && (
                   <div className="mt-4 border-t border-slate-100 pt-4">
@@ -322,10 +330,26 @@ const Dashboard = () => {
               {isAdmin && (
                 <label className="block">
                   <span className="text-sm font-medium text-slate-700">Assign to</span>
-                  <select className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value={form.assignedTo} onChange={(event) => setForm({ ...form, assignedTo: event.target.value })}>
-                    <option value="">Unassigned</option>
+                  <select
+                    multiple
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                    value={form.assignedTo}
+                    onChange={(event) => {
+                      const values = Array.from(
+                        event.target.selectedOptions,
+                        (option) => option.value
+                      );
+
+                      setForm({
+                        ...form,
+                        assignedTo: values,
+                      });
+                    }}
+                  >
                     {users.map((item) => (
-                      <option key={item._id} value={item._id}>{item.name} ({item.email})</option>
+                      <option key={item._id} value={item._id}>
+                        {item.name} ({item.email})
+                      </option>
                     ))}
                   </select>
                 </label>
