@@ -114,19 +114,36 @@ const getAllTasks = async (req, res) => {
 
 const createTask = async (req, res) => {
   try {
-    const { title, description, status, priority, dueDate, assignedTo } = req.body;
+    const {
+      title,
+      description,
+      status,
+      priority,
+      dueDate,
+      assignedTo,
+    } = req.body;
+
+    let assignedUsers = assignedTo;
+
+    if (assignedUsers && !Array.isArray(assignedUsers)) {
+      assignedUsers = [assignedUsers];
+    }
 
     if (!title) {
       cleanupFiles(req.files);
-      return res.status(400).json({ success: false, message: "Title is required" });
+
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
     }
 
-    if (assignedTo?.length) {
+    if (assignedUsers?.length) {
       const users = await User.find({
-        _id: { $in: assignedTo },
+        _id: { $in: assignedUsers },
       });
 
-      if (users.length !== assignedTo.length) {
+      if (users.length !== assignedUsers.length) {
         cleanupFiles(req.files);
 
         return res.status(404).json({
@@ -142,7 +159,7 @@ const createTask = async (req, res) => {
       status,
       priority,
       dueDate: dueDate || null,
-      assignedTo: assignedTo || [],
+      assignedTo: assignedUsers || [],
       createdBy: req.user._id,
       documents: mapFilesToDocuments(req.files),
     });
@@ -158,7 +175,11 @@ const createTask = async (req, res) => {
     });
   } catch (error) {
     cleanupFiles(req.files);
-    res.status(500).json({ success: false, message: "Server Error" });
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
   }
 };
 
@@ -214,24 +235,37 @@ const updateTask = async (req, res) => {
       });
     }
 
-    const { title, description, status, priority, dueDate, assignedTo } = req.body;
+    const {
+  title,
+  description,
+  status,
+  priority,
+  dueDate,
+  assignedTo,
+} = req.body;
 
-    if (assignedTo?.length) {
-      const users = await User.find({
-        _id: { $in: assignedTo },
-      });
+let assignedUsers = assignedTo;
 
-      if (users.length !== assignedTo.length) {
-        cleanupFiles(req.files);
+if (assignedUsers && !Array.isArray(assignedUsers)) {
+  assignedUsers = [assignedUsers];
+}
 
-        return res.status(404).json({
-          success: false,
-          message: "One or more assigned users not found",
-        });
-      }
+if (assignedUsers?.length) {
+  const users = await User.find({
+    _id: { $in: assignedUsers },
+  });
 
-      task.assignedTo = assignedTo;
-    }
+  if (users.length !== assignedUsers.length) {
+    cleanupFiles(req.files);
+
+    return res.status(404).json({
+      success: false,
+      message: "One or more assigned users not found",
+    });
+  }
+
+  task.assignedTo = assignedUsers;
+}
 
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
