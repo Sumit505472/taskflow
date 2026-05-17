@@ -151,64 +151,64 @@ const Dashboard = () => {
     <main className="min-h-screen bg-slate-50">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
 
-  <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
-    {/* LEFT SIDE */}
-    <div className="flex items-center gap-4">
+          {/* LEFT SIDE */}
+          <div className="flex items-center gap-4">
 
-      {/* LOGO */}
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7C6CFB] to-[#4338CA] text-2xl font-bold text-white shadow-lg">
-        T
-      </div>
+            {/* LOGO */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7C6CFB] to-[#4338CA] text-2xl font-bold text-white shadow-lg">
+              T
+            </div>
 
-      {/* BRAND */}
-      <div>
-        <p className="text-sm font-semibold tracking-wide text-purple-300">
-          TaskFlow
-        </p>
+            {/* BRAND */}
+            <div>
+              <p className="text-sm font-semibold tracking-wide text-purple-300">
+                TaskFlow
+              </p>
 
-        <p className="text-xs text-slate-400">
-          Productivity Workspace
-        </p>
-      </div>
-    </div>
+              <p className="text-xs text-slate-400">
+                Productivity Workspace
+              </p>
+            </div>
+          </div>
 
-    {/* CENTER TITLE */}
-    <div className="absolute left-1/2 -translate-x-1/2">
+          {/* CENTER TITLE */}
+          <div className="absolute left-1/2 -translate-x-1/2">
 
-      <h1 className="text-3xl font-bold tracking-wide text-white">
-        Task Dashboard
-      </h1>
+            <h1 className="text-3xl font-bold tracking-wide text-white">
+              Task Dashboard
+            </h1>
 
-    </div>
+          </div>
 
-    {/* RIGHT SIDE */}
-    <div className="flex items-center gap-4">
+          {/* RIGHT SIDE */}
+          <div className="flex items-center gap-4">
 
-      {/* USER INFO */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
+            {/* USER INFO */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
 
-        <p className="text-sm font-semibold text-white">
-          {user?.name}
-        </p>
+              <p className="text-sm font-semibold text-white">
+                {user?.name}
+              </p>
 
-        <p className="text-xs uppercase tracking-wide text-purple-300">
-          {user?.role}
-        </p>
+              <p className="text-xs uppercase tracking-wide text-purple-300">
+                {user?.role}
+              </p>
 
-      </div>
+            </div>
 
-      {/* LOGOUT BUTTON */}
-      <button
-        onClick={logout}
-        className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500 hover:text-white"
-      >
-        Logout
-      </button>
+            {/* LOGOUT BUTTON */}
+            <button
+              onClick={logout}
+              className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500 hover:text-white"
+            >
+              Logout
+            </button>
 
-    </div>
-  </div>
-</header>
+          </div>
+        </div>
+      </header>
 
       <section className="mx-auto max-w-7xl px-6 py-8">
         <div className="mb-6 flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:flex-row lg:items-end lg:justify-between">
@@ -261,8 +261,19 @@ const Dashboard = () => {
                         <div key={document._id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
                           <span className="font-medium text-slate-700">{document.originalName}</span>
                           <span className="flex gap-3">
-                            <a className="font-semibold text-blue-700" href={`/api/tasks/${task._id}/documents/${document._id}/view`} target="_blank" rel="noreferrer">View</a>
-                            <a className="font-semibold text-blue-700" href={`/api/tasks/${task._id}/documents/${document._id}`}>Download</a>
+                            <a className="font-semibold text-blue-700"
+                              href={`http://65.2.79.177:5000/api/tasks/${task._id}/documents/${document._id}/view`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              View
+                            </a>
+                            <a
+                              className="font-semibold text-blue-700"
+                              href={`http://65.2.79.177:5000/api/tasks/${task._id}/documents/${document._id}`}
+                            >
+                              Download
+                            </a>
                             <button className="font-semibold text-red-600" onClick={() => deleteDocument(task._id, document._id)}>Delete</button>
                           </span>
                         </div>
